@@ -85,6 +85,7 @@ io.on("connection", (socket) => {
 
 app.post("/api/register", async (req, res) => {
   const { uid, email, displayName, photoURL } = req.body;
+  console.log(req.body);
 
   try {
     const existingUser = await UserInfo.findOne({ email });
@@ -100,6 +101,7 @@ app.post("/api/register", async (req, res) => {
       photoURL: photoURL || "https://randomuser.me/api/portraits/men/1.jpg",
       createdAt: new Date(),
     });
+    console.log(newUser);
 
     await newUser.save();
     res.json({ message: "User registered successfully.", user: newUser });
