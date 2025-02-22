@@ -30,10 +30,7 @@ app.use(
 app.use(express.json());
 app.use(cors());
 
-// Connect to MongoDB  {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true,
-// }
+// Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
@@ -54,6 +51,30 @@ const taskSchema = new mongoose.Schema({
 });
 const Task = mongoose.model("Task", taskSchema);
 
+// const userSchema = new mongoose.Schema({
+//   name: { type: String, required: true },
+//   email: { type: String, required: true, unique: true },
+//   userId: { type: String, required: true, unique: true },
+//   avatar: {
+//     type: String,
+//     default: "https://randomuser.me/api/portraits/men/1.jpg",
+//   },
+//   createdAt: { type: Date, default: Date.now },
+// });
+
+const userInfoSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  displayName: { type: String },
+  photoURL: {
+    type: String,
+    default: "https://randomuser.me/api/portraits/men/1.jpg",
+  },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const UserInfo = mongoose.model("UserInfo", userInfoSchema);
+
 // WebSocket Setup
 const io = new Server(server, {
   cors: {
@@ -63,8 +84,35 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  console.log("New client connected");
   socket.on("disconnect", () => console.log("Client disconnected"));
+});
+
+// user registration api
+
+app.post("/api/register", async (req, res) => {
+  const { uid, email, displayName, photoURL } = req.body;
+
+  try {
+    const existingUser = await UserInfo.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists." });
+    }
+
+    const newUser = new UserInfo({
+      userId: uid || Math.random().toString(36).substr(2, 9),
+      email,
+      displayName: displayName || "Unknown User",
+      photoURL: photoURL || "https://randomuser.me/api/portraits/men/1.jpg",
+      createdAt: new Date(),
+    });
+
+    await newUser.save();
+    res.json({ message: "User registered successfully.", user: newUser });
+  } catch (error) {
+    console.error("Error registering user:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
 });
 
 // Token verification middleware
@@ -114,7 +162,6 @@ app.post("/addtasks", async (req, res) => {
         .status(400)
         .json({ error: "Title, category, and userId are required" });
     }
-    console.log(req.body);
 
     // Find the last order number for the user's tasks
     const lastTask = await Task.findOne({ userId }).sort({ order: -1 });
@@ -122,14 +169,10 @@ app.post("/addtasks", async (req, res) => {
       ...req.body,
       order: lastTask ? lastTask.order + 1 : 1,
     });
-
-    // const task = new Task(req.body);
-
     await task.save();
     io.emit("taskUpdated");
     res.status(201).json(task);
   } catch (error) {
-    console.error("Error saving task:", error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -163,7 +206,6 @@ app.put("/tasks/:id", async (req, res) => {
     io.emit("taskUpdated");
     res.json(task);
   } catch (error) {
-    console.error("Error updating task:", error);
     res.status(400).json({ error: error.message });
   }
 });
