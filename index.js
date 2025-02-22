@@ -10,7 +10,12 @@ import http from "http";
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://taskmanagement-254ee.web.app",
+  "https://console.firebase.google.com/project/taskmanagement-254ee",
+];
 
 app.use(
   cors({
@@ -50,17 +55,6 @@ const taskSchema = new mongoose.Schema({
   order: { type: Number, required: true },
 });
 const Task = mongoose.model("Task", taskSchema);
-
-// const userSchema = new mongoose.Schema({
-//   name: { type: String, required: true },
-//   email: { type: String, required: true, unique: true },
-//   userId: { type: String, required: true, unique: true },
-//   avatar: {
-//     type: String,
-//     default: "https://randomuser.me/api/portraits/men/1.jpg",
-//   },
-//   createdAt: { type: Date, default: Date.now },
-// });
 
 const userInfoSchema = new mongoose.Schema({
   userId: { type: String, required: true },
